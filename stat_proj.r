@@ -43,7 +43,6 @@ split_punct <- function(filtered_vec, spcl_char) {
   new_vec[-i_new_char] <- gsub(spcl_pattern, "", filtered_vec)
   return(new_vec)
 }
-
 spcl_char_vec <- c(",", ".", ";", "!", ":")
 v_output <- split_punct(filtered_vec, spcl_char_vec)
 v_lower <- tolower(v_output)
