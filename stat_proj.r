@@ -65,7 +65,7 @@ top<- which(pop <= 1000) # Indices of around the top 1000 words
 top_1000_words<- a[top] # Get the top actual words from the text
 
 mlag<- 4 # As given in the assignment
-m<- match(a,top_1000_words) # Convert the text into toekn indices, but only for top 1000 words, the rest are NA
+m<- match(a,top_1000_words) # Convert the text into token indices, but only for top 1000 words, the rest are NA
 
 n<- length(m) 
 M<- matrix(nrow=(n-mlag), ncol=mlag+1) # Generates matrix of required size
@@ -76,3 +76,29 @@ for (j in 0:mlag) {
 }
 
 M # Sliding vector
+
+## NOT CHECKED
+next.word<- function(key,M,M1,w=rep(1,ncol(M)-1)) {
+  ## Deal with the length of the key, if longer/ shorter
+  ## NOT SURE ABOUT THIS AT THE MOMENT
+  if (length(key)>mlag+1) {
+    key_used<- tail(key, mlag+1)
+  } else{
+    key_used<- key
+  }
+  
+  mlag_for_key<- length(key_used)
+  
+  # Using hint from the assignment  
+  ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
+  matching_rows<- which(ii[j]==0 & is.finite(ii))
+  
+  if(length(matching_rows)>0) {
+    c<- M[matching_rows, mlag + 2]
+    next_word<- sample(c, 1, replace=FALSE)
+  } else {
+    next_word<- sample(M1, 1)
+  }
+  
+  return(next_word)
+}
