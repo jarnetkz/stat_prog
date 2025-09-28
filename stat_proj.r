@@ -48,7 +48,7 @@ v_output <- split_punct(filtered_vec, spcl_char_vec)
 v_lower <- tolower(v_output)
 
 
-## Part 5 and 6, 
+## Part 5, 6, 7
 ## Abbi's Addition
 ## May have over commented
 
@@ -72,7 +72,7 @@ for (j in 0:mlag) {
 
 M # Sliding vector
 
-## NOT CHECKED
+## NOT CHECKED, WIP
 next.word<- function(key,M,M1,w=rep(1,ncol(M)-1)) {
   ## Deal with the length of the key, if longer/ shorter
   ## NOT SURE ABOUT THIS AT THE MOMENT
