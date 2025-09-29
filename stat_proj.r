@@ -38,12 +38,12 @@ split_punct <- function(filtered_vec, spcl_char) {
   spcl_pattern = paste0("[", paste(spcl_char, collapse=""), "]")
   i_spcl_char <- grep(spcl_pattern, filtered_vec)
   new_vec <- rep("",length(filtered_vec) + length(i_spcl_char)) # create character empty string
-  i_new_char <- i_spcl_char+1:length(i_spcl_char) # compute new location after splitting
+  i_new_char <- i_spcl_char + seq_along(i_spcl_char) # compute new location after splitting
   new_vec[i_new_char] <- substr(filtered_vec[i_spcl_char], nchar(filtered_vec[i_spcl_char]), nchar(filtered_vec[i_spcl_char]))
   new_vec[-i_new_char] <- gsub(spcl_pattern, "", filtered_vec)
   return(new_vec)
 }
-spcl_char_vec <- c(",", ".", ";", "!", ":")
+spcl_char_vec <- c(",", ".", ";", "!", ":", "?")
 v_output <- split_punct(filtered_vec, spcl_char_vec)
 v_lower <- tolower(v_output)
 
@@ -58,6 +58,18 @@ freq<- tabulate(c) # Count how many times unique word appears
 pop<- rank(-freq, na.last=TRUE) # Rank words by frequency. Ties have the same rank.
 top<- which(pop <= 1000) # Indices of around the top 1000 words
 top_1000_words<- v_lower[top] # Get the top actual words from the text
+
+## yiheng's version
+#b    <- unique(v_lower)
+#idx  <- match(v_lower, b)
+#freq <- tabulate(idx, nbins = length(b))
+#ord  <- order(-freq, seq_along(freq)) 
+#k    <- 1000L
+#top_1000_words <- b[ ord[ seq_len(min(k, length(ord))) ] ]
+## computed ranks on b (the vocab) but then indexed v_lower (the sequence),
+## which could duplicate words and make results unstable.
+## new code orders b by descending frequency (with deterministic tie-breaking) and takes the first K,
+## so top_1000_words is a clean, unique vocab keeping M1/m/M consistent
 
 mlag<- 4 # As given in the assignment
 m<- match(v_lower,top_1000_words) # Convert the text into token indices, but only for top 1000 words, the rest are NA
@@ -126,4 +138,4 @@ generate_sentence <- function(M, M1 = m, vocab = top_1000_words,
   
   tokens_to_text(out, vocab)                    
 }
-
+# For test
