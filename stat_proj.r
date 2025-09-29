@@ -52,15 +52,15 @@ v_lower <- tolower(v_output)
 ## Abbi's Addition
 ## May have over commented
 
-b<- unique(a) # Getting unique words in text
-c<- match(a, b)
+b<- unique(v_lower) # Getting unique words in text
+c<- match(v_lower, b)
 freq<- tabulate(c) # Count how many times unique word appears
 pop<- rank(-freq, na.last=TRUE) # Rank words by frequency. Ties have the same rank.
 top<- which(pop <= 1000) # Indices of around the top 1000 words
-top_1000_words<- a[top] # Get the top actual words from the text
+top_1000_words<- v_lower[top] # Get the top actual words from the text
 
 mlag<- 4 # As given in the assignment
-m<- match(a,top_1000_words) # Convert the text into token indices, but only for top 1000 words, the rest are NA
+m<- match(v_lower,top_1000_words) # Convert the text into token indices, but only for top 1000 words, the rest are NA
 
 n<- length(m) 
 M<- matrix(nrow=(n-mlag), ncol=mlag+1) # Generates matrix of required size
@@ -97,4 +97,8 @@ next.word<- function(key,M,M1,w=rep(1,ncol(M)-1)) {
   
   return(next_word)
 }
+
+
+
+next_word(key,M,M1,w=rep(1,ncol(M)-1))
 
