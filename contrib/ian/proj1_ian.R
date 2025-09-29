@@ -26,7 +26,6 @@ remove_stage_dirs <- function(a, look_ahead = 100L) {
       keep[i:close_pos] <- FALSE
     }
   }
-  # 返回删除后的文本
   a[keep]
 }
 
@@ -87,11 +86,9 @@ r <- rank(-freq, ties.method = "first")
 b <- u[r <= min(k, length(u))]
 
 # 6) 构造“常用词 token 序列”的矩阵
-mlag <- 4L   # 可以改成任何合理的整数
-
+mlag <- 4L 
 # 6(a) 整个文本的 token 向量（不在 b 里的词记为 NA）
 M1 <- match(a, b) 
-
 # 6(b) 生成 (n - mlag) x (mlag + 1) 的矩阵 M
 n  <- length(M1)
 nr <- n - mlag
@@ -102,24 +99,30 @@ for (j in 0:mlag) {
   M[, j + 1L] <- M1[(1L + j):(nr + j)]   # 逐列用移位后的 M1 填充
 }
 
-# (7) 生成下一个 token
+# (7)  Step 7 (Yiheng) — next.word()
+#' @param key integer token vector (current context)
+#' @param M   (n-mlag) x (mlag+1) window matrix; last column = next token
+#' @param M1  full token vector of the text
+#' @param w   weights for backoff orders; length = mlag (default: all 1)
+#' @return    integer token id of the next word
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
-  mlag <- ncol(M) - 1L
-  key  <- as.integer(key)
-  if (length(key) > mlag) key <- tail(key, mlag)       # 只用最后 mlag 个
-  Lmax <- min(length(key), mlag)                        # 短 key 用降阶
+  mlag <- ncol(M) - 1L  # model order
+  key  <- as.integer(key) # ensure integer token ids
+  if (length(key) > mlag) key <- tail(key, mlag)       
+  Lmax <- min(length(key), mlag)                      
   
-  tok <- integer(0)                                     # 收集候选 token
-  pr  <- numeric(0)                                     # 收集对应概率权重
+  tok <- integer(0) # collected candidate next tokens                                   
+  pr  <- numeric(0) # corresponding (unnormalized) weights                                    
   
   for (L in Lmax:1L) {
-    kL <- tail(key, L)
-    mc <- mlag - L + 1L
+    kL <- tail(key, L) # suffix of length L to match
+    mc <- mlag - L + 1L # start column in M that aligns this suffix
+    #rows where all L columns equal kL produce ii == 0
     ii  <- colSums(!(t(M[, mc:mlag, drop = FALSE]) == kL))
     hit <- which(ii == 0 & is.finite(ii))
     if (length(hit)) {
-      u <- M[hit, mlag + 1L]
-      u <- u[!is.na(u)]
+      u <- M[hit, mlag + 1L] # next-token column is the last one
+      u <- u[!is.na(u)] # drop missing next tokens
       if (length(u)) {
         pr  <- c(pr,  rep(w[L] / length(u), length(u)))
         tok <- c(tok, u)
@@ -127,13 +130,11 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
     }
   }
   
-  # 无任何匹配：最朴素回退（在语料中出现过的 token 里平均抽一个）
   if (!length(tok)) {
     pool <- unique(M1[!is.na(M1)])
     return(sample(pool, size = 1L))
   }
   
-  # 合并相同 token 的权重并归一化后采样
   mix <- tapply(pr, tok, sum)
   tokens <- as.integer(names(mix))
   probs  <- as.numeric(mix)
