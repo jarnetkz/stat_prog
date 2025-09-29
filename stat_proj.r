@@ -104,4 +104,4 @@ key<- c("From", "fairest", "creatures", ",", "sun")
 
 cat(next.word(key,M,v_lower,w=rep(1,ncol(M)-1)))
 
-
+## Part 8, 9（ from yiheng)
