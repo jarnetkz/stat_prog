@@ -142,56 +142,26 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
   sample(tokens, size = 1L, prob = probs)
 }
 
-# (8)是否是标点（token id -> 词，再与标点集合比）
-is_punct_token_plain <- function(x, b, punct = c(",", ".", ";", "!", ":", "?")) {
-  w <- b[x]
-  (!is.na(w)) & (w %in% punct)
-}
+.PUNCT <- c(",", ".", ";", "!", ":", "?")
 
-# 还原句子
-tokens_to_text <- function(tok_ids, b, punct = .PUNCT) {
-  words <- b[tok_ids]
-  words <- words[!is.na(words)]
-  out <- character(0)
-  for (w in words) {
-    if (w %in% punct) {
-      if (length(out)) out[length(out)] <- paste0(out[length(out)], w)
-    } else {
-      out <- c(out, w)
-    }
-  }
-  paste(out, collapse = " ")
-}
-
-# 选起始 token
-pick_seed_token_plain <- function(M1, b, seed_word = NULL, punct = c(",", ".", ";", "!", ":", "?")) {
-  if (!is.null(seed_word)) {
-    ids <- which(b == tolower(seed_word))
-    ids <- ids[!is_punct_token_plain(ids, b, punct)]
-    if (length(ids) > 0) return(sample(ids, 1L))
-  }
-  # 随机起点
-  ids <- unique(M1[!is.na(M1)])
-  # 去掉标点 id
-  ids <- ids[!is_punct_token_plain(ids, b, punct)]
-  if (length(ids) == 0) {
-    all_ids <- which(!(b %in% punct))
-    return(sample(all_ids, 1L))
-  }
-  sample(ids, 1L)
-}
-
-# (9) 直到是句号，生成一句话
 generate_sentence <- function(b, M, M1,
                               w = rep(1, ncol(M) - 1L),
                               seed_word = NULL,
                               max_len = 60L) {
-  stopifnot(ncol(M) >= 2)
-  
-  seed <- pick_seed_token_plain(M1, b, seed_word)  
-  key  <- seed
-  out  <- seed
-  
+  pick_seed <- function() {
+    pool <- unique(M1[!is.na(M1)])
+    pool <- pool[!(b[pool] %in% .PUNCT)]
+    if (length(pool) == 0L) return(NA_integer_)
+    sample(pool, 1L)
+  }
+  seed <- if (is.null(seed_word)) {
+    pick_seed()
+  } else {
+    id <- match(tolower(seed_word), b)
+    if (is.na(id) || b[id] %in% .PUNCT) pick_seed() else id
+  }
+
+  out <- seed; key <- seed
   for (i in seq_len(max_len)) {
     nx <- next.word(key, M, M1, w)
     if (is.na(nx)) break
@@ -199,7 +169,18 @@ generate_sentence <- function(b, M, M1,
     if (b[nx] == ".") break
     key <- c(key, nx)
   }
-  
-  tokens_to_text_plain(out, b)                    
+
+  s <- paste(b[out], collapse = " ")
+  s <- gsub(" +([,.;!:?])", "\\1", s)    # glue punctuation to previous word
+  sub(" +$", "", s)                      # trim trailing spaces
 }
+
+
+
+
+#test code
+set.seed(42)
+w <- rep(1, ncol(M) - 1L)
+cat(generate_sentence(b, M, M1, w), "\n")
+cat(generate_sentence(b, M, M1, w, seed_word = "romeo"), "\n")
 
