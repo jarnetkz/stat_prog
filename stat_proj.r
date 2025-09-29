@@ -76,20 +76,22 @@ M # Sliding vector
 next.word<- function(key,M,M1,w=rep(1,ncol(M)-1)) {
   ## Deal with the length of the key, if longer/ shorter
   ## NOT SURE ABOUT THIS AT THE MOMENT
+  mlag<- ncol(M) - 1
   if (length(key)>mlag+1) {
     key_used<- tail(key, mlag+1)
   } else{
     key_used<- key
   }
   
-  mlag_for_key<- length(key_used)
+  mlag_for_key <- length(key_used)
+  mc<- mlag - mlag_for_key + 1
   
   # Using hint from the assignment  
-  ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
-  matching_rows<- which(ii[j]==0 & is.finite(ii))
+  ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key_used))
+  matching_rows <- which(ii[j] == 0 & is.finite(ii[j]))
   
   if(length(matching_rows)>0) {
-    c<- M[matching_rows, mlag + 2]
+    c<- M[matching_rows, mlag + 1]
     next_word<- sample(c, 1, replace=FALSE)
   } else {
     next_word<- sample(M1, 1)
@@ -98,7 +100,8 @@ next.word<- function(key,M,M1,w=rep(1,ncol(M)-1)) {
   return(next_word)
 }
 
+key<- c("From", "fairest", "creatures")
 
+cat(next.word(key,M,v_lower,w=rep(1,ncol(M)-1)))
 
-next_word(key,M,M1,w=rep(1,ncol(M)-1))
 
