@@ -105,3 +105,25 @@ key<- c("From", "fairest", "creatures", ",", "sun")
 cat(next.word(key,M,v_lower,w=rep(1,ncol(M)-1)))
 
 ## Part 8, 9（ from yiheng)
+# start from a single non-punctuation token; keep sampling next tokens.
+generate_sentence <- function(M, M1 = m, vocab = top_1000_words,
+                              w = rep(1, ncol(M) - 1L),
+                              seed_word = NULL,
+                              max_len = 60L) {
+  stopifnot(ncol(M) >= 2)
+  
+  seed <- pick_seed_token(M1, vocab, seed_word)
+  key  <- seed
+  out  <- seed
+  
+  for (i in seq_len(max_len)) {
+    nx <- next.word_safe(key, M, M1, w, vocab)
+    if (is.na(nx)) break
+    out <- c(out, nx)
+    if (vocab[nx] == ".") break                 
+    key <- c(key, nx)                           
+  }
+  
+  tokens_to_text(out, vocab)                    
+}
+
