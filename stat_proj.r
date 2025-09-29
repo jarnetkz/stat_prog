@@ -77,8 +77,8 @@ next.word<- function(key,M,M1,w=rep(1,ncol(M)-1)) {
   ## Deal with the length of the key, if longer/ shorter
   ## NOT SURE ABOUT THIS AT THE MOMENT
   mlag<- ncol(M) - 1
-  if (length(key)>mlag+1) {
-    key_used<- tail(key, mlag+1)
+  if (length(key)>mlag) {
+    key_used<- tail(key, mlag)
   } else{
     key_used<- key
   }
@@ -100,7 +100,7 @@ next.word<- function(key,M,M1,w=rep(1,ncol(M)-1)) {
   return(next_word)
 }
 
-key<- c("From", "fairest", "creatures")
+key<- c("From", "fairest", "creatures", ",", "sun")
 
 cat(next.word(key,M,v_lower,w=rep(1,ncol(M)-1)))
 
