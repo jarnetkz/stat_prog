@@ -72,7 +72,7 @@ M <- matrix(NA_integer_, nrow = nr, ncol = mlag + 1L)
 for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 
 
-## 7: next.word (from yiheng)
+## 7: next.word
 # key: integer token ids; M: (n-mlag) x (mlag+1) (last col = next token)
 # M1: full-text tokens (integers) over same vocab; w: mixture weights
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
