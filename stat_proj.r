@@ -48,7 +48,7 @@ v_output <- split_punct(filtered_vec, spcl_char_vec)
 v_lower <- tolower(v_output)
 
 
-## Part 5, 6, 7 from yiheng
+## Part 5, 6, 7
 
 ## 5
 b_all <- unique(v_lower)
@@ -72,7 +72,7 @@ M <- matrix(NA_integer_, nrow = nr, ncol = mlag + 1L)
 for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 
 
-## 7: next.word
+## 7: next.word (from yiheng)
 # key: integer token ids; M: (n-mlag) x (mlag+1) (last col = next token)
 # M1: full-text tokens (integers) over same vocab; w: mixture weights
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
@@ -159,7 +159,12 @@ generate_sentence <- function(b, M, M1,
   s <- gsub(" +([,.;!:?])", "\\1", s) 
   sub(" +$", "", s)
 }
-
+##over
+## test code
+set.seed(42)
+cat("Sample A:", generate_sentence(b, M, M1, w), "\n")
+cat("Sample B (seed='romeo'):", generate_sentence(b, M, M1, w, seed_word="romeo"), "\n")
+cat("Sample C (seed='king') :", generate_sentence(b, M, M1, w, seed_word="king"), "\n")
 
 
 
@@ -174,17 +179,7 @@ pop<- rank(-freq, na.last=TRUE) # Rank words by frequency. Ties have the same ra
 top<- which(pop <= 1000) # Indices of around the top 1000 words
 top_1000_words<- v_lower[top] # Get the top actual words from the text
 
-## yiheng's version
-#b    <- unique(v_lower)
-#idx  <- match(v_lower, b)
-#freq <- tabulate(idx, nbins = length(b))
-#ord  <- order(-freq, seq_along(freq)) 
-#k    <- 1000L
-#top_1000_words <- b[ ord[ seq_len(min(k, length(ord))) ] ]
-## computed ranks on b (the vocab) but then indexed v_lower (the sequence),
-## which could duplicate words and make results unstable.
-## new code orders b by descending frequency (with deterministic tie-breaking) and takes the first K,
-## so top_1000_words is a clean, unique vocab keeping M1/m/M consistent
+
 
 mlag<- 4 # As given in the assignment
 m<- match(v_lower,top_1000_words) # Convert the text into token indices, but only for top 1000 words, the rest are NA
