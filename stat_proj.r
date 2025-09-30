@@ -48,7 +48,122 @@ v_output <- split_punct(filtered_vec, spcl_char_vec)
 v_lower <- tolower(v_output)
 
 
-## Part 5, 6, 7
+## Part 5, 6, 7 from yiheng
+
+## 5
+b_all <- unique(v_lower)
+idx   <- match(v_lower, b_all)
+freq  <- tabulate(idx, nbins = length(b_all))
+ord   <- order(-freq, seq_along(freq))           
+k     <- 1000L
+b     <- b_all[ ord[ seq_len(min(k, length(ord))) ] ]
+
+ 
+.PUNCT <- c(",", ".", ";", "!", ":", "?")
+b <- unique(c(b, .PUNCT))
+
+## 6: tokens & context matrix
+M1 <- match(v_lower, b)                        
+storage.mode(M1) <- "integer"
+mlag <- 4L
+n <- length(M1); nr <- n - mlag; stopifnot(nr > 0L)
+
+M <- matrix(NA_integer_, nrow = nr, ncol = mlag + 1L)
+for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
+
+
+## 7: next.word
+# key: integer token ids; M: (n-mlag) x (mlag+1) (last col = next token)
+# M1: full-text tokens (integers) over same vocab; w: mixture weights
+next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
+  mlag <- ncol(M) - 1L
+  key  <- as.integer(key)
+  if (length(key) > mlag) key <- tail(key, mlag)
+  Lmax <- min(length(key), mlag)
+
+  cand <- integer(0); prob <- numeric(0)
+
+  for (L in Lmax:1L) {
+    if (L <= 0L) next
+    kL <- tail(key, L)
+    mc <- mlag - L + 1L
+
+    block <- M[, mc:mlag, drop = FALSE]            # nrow x L
+    if (!is.matrix(block)) block <- cbind(block)
+    eq <- block == rep(kL, each = nrow(block))   
+    eq[is.na(eq)] <- FALSE                         # NA ≠ anything
+    hit <- which(rowSums(eq) == ncol(block))       # rows matching all L cols
+
+    if (length(hit)) {
+      uL <- M[hit, mlag + 1L]                      # next-token column
+      uL <- uL[!is.na(uL)]
+      if (length(uL)) {
+        cand <- c(cand, uL)
+        prob <- c(prob, rep(w[L] / length(uL), length(uL)))
+      }
+    }
+  }
+
+  # 0-gram fallback
+  if (!length(cand)) {
+    pool <- as.integer(M1[!is.na(M1)])
+    if (!length(pool)) return(NA_integer_)
+    tab <- tabulate(pool, nbins = max(M1, na.rm = TRUE))
+    return(sample.int(length(tab), 1L, prob = tab))
+  }
+
+  prob <- prob / sum(prob)
+  sample(cand, 1L, prob = prob)
+}
+
+## part 8 9 from yiheng
+.PUNCT <- c(",", ".", ";", "!", ":", "?")
+
+generate_sentence <- function(b, M, M1,
+                              w = rev(seq_len(ncol(M) - 1L))^2,  
+                              seed_word = NULL,
+                              max_len = 60L,
+                              min_len = 8L,
+                              tries_if_punct = 6L) {
+
+  pick_seed <- function() {
+    pool <- M1[!is.na(M1)]
+    pool <- pool[!(b[pool] %in% .PUNCT)]
+    if (!length(pool)) return(NA_integer_)
+    tab <- tabulate(pool, nbins = length(b))
+    sample.int(length(b), 1L, prob = tab)
+  }
+  seed <- if (is.null(seed_word)) {
+    pick_seed()
+  } else {
+    id <- match(tolower(seed_word), b)
+    if (is.na(id) || b[id] %in% .PUNCT) pick_seed() else id
+  }
+
+  out <- seed; key <- seed
+  for (i in seq_len(max_len)) {
+    nx <- NA_integer_
+    for (t in seq_len(tries_if_punct)) {
+      nx <- next.word(key, M, M1, w)
+      if (is.na(nx)) break
+      if (length(out) < min_len && b[nx] == ".") next
+      break
+    }
+    if (is.na(nx)) break
+    out <- c(out, nx)
+    if (b[nx] == ".") break
+    key <- c(key, nx)
+  }
+
+  s <- paste(b[out], collapse = " ")
+  s <- gsub(" +([,.;!:?])", "\\1", s) 
+  sub(" +$", "", s)
+}
+
+
+
+
+
 ## Abbi's Addition
 ## May have over commented
 
@@ -116,26 +231,3 @@ key<- c("From", "fairest", "creatures", ",", "sun")
 
 cat(next.word(key,M,v_lower,w=rep(1,ncol(M)-1)))
 
-## Part 8, 9（ from yiheng)
-# start from a single non-punctuation token; keep sampling next tokens.
-generate_sentence <- function(M, M1 = m, vocab = top_1000_words,
-                              w = rep(1, ncol(M) - 1L),
-                              seed_word = NULL,
-                              max_len = 60L) {
-  stopifnot(ncol(M) >= 2)
-  
-  seed <- pick_seed_token(M1, vocab, seed_word)
-  key  <- seed
-  out  <- seed
-  
-  for (i in seq_len(max_len)) {
-    nx <- next.word_safe(key, M, M1, w, vocab)
-    if (is.na(nx)) break
-    out <- c(out, nx)
-    if (vocab[nx] == ".") break                 
-    key <- c(key, nx)                           
-  }
-  
-  tokens_to_text(out, vocab)                    
-}
-# For test
