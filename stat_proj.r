@@ -71,9 +71,12 @@ b <- unique(c(b, .PUNCT)) ## Adds punctuation to our word tokens
 M1 <- match(v_lower, b)                        
 storage.mode(M1) <- "integer"
 mlag <- 4L
-n <- length(M1); nr <- n - mlag; stopifnot(nr > 0L)
+n <- length(M1); nr <- n - mlag; stopifnot(nr > 0L) ## Stop condition
 
+## Generate a matrix of NAs
 M <- matrix(NA_integer_, nrow = nr, ncol = mlag + 1L)
+
+## Generate our sliding window vector
 for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 
 
@@ -83,7 +86,8 @@ for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
   mlag <- ncol(M) - 1L
   key  <- as.integer(key)
-  if (length(key) > mlag) key <- tail(key, mlag)
+  ## Take the last mlag words of the key if this is larger than mlag
+  if (length(key) > mlag) key <- tail(key, mlag) 
   Lmax <- min(length(key), mlag)
 
   cand <- integer(0); prob <- numeric(0)
