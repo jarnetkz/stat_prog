@@ -82,34 +82,35 @@ for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 # M1: full-text tokens (integers) over same vocab; w: mixture weights
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
   mlag <- ncol(M) - 1L
-  key  <- as.integer(key)
-  if (length(key) > mlag) key <- tail(key, mlag)
-  Lmax <- min(length(key), mlag)
+  key  <- as.integer(key)                               # ensure integers
+  if (length(key) > mlag) key <- tail(key, mlag)       
+  Lmax <- min(length(key), mlag)                        # max usable order
 
-  cand <- integer(0); prob <- numeric(0)
+  cand <- integer(0)                                    
+  prob <- numeric(0)                                    
 
-  for (L in Lmax:1L) {
+  for (L in Lmax:1L) {                                  # back off: L = Lmax..1
     if (L <= 0L) next
-    kL <- tail(key, L)
-    mc <- mlag - L + 1L
+    kL <- tail(key, L)                                  # last L tokens
+    mc <- mlag - L + 1L                                 # starting column
 
-    block <- M[, mc:mlag, drop = FALSE]            # nrow x L
-    if (!is.matrix(block)) block <- cbind(block)
-    eq <- block == rep(kL, each = nrow(block))   
-    eq[is.na(eq)] <- FALSE                         # NA ≠ anything
-    hit <- which(rowSums(eq) == ncol(block))       # rows matching all L cols
+    block <- M[, mc:mlag, drop = FALSE]                 # context block (nrow x L)
+    if (!is.matrix(block)) block <- cbind(block)        # ensure matrix
+    eq <- block == rep(kL, each = nrow(block))          # compare with suffix
+    eq[is.na(eq)] <- FALSE                              # NA never matches
+    hit <- which(rowSums(eq) == ncol(block))           
 
     if (length(hit)) {
-      uL <- M[hit, mlag + 1L]                      # next-token column
+      uL <- M[hit, mlag + 1L]                           # corresponding next tokens
       uL <- uL[!is.na(uL)]
       if (length(uL)) {
         cand <- c(cand, uL)
-        prob <- c(prob, rep(w[L] / length(uL), length(uL)))
+        prob <- c(prob, rep(w[L] / length(uL), length(uL))) # equal share within order
       }
     }
   }
 
-  # 0-gram fallback
+  # 0-gram fallback: global frequency
   if (!length(cand)) {
     pool <- as.integer(M1[!is.na(M1)])
     if (!length(pool)) return(NA_integer_)
@@ -117,8 +118,8 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
     return(sample.int(length(tab), 1L, prob = tab))
   }
 
-  prob <- prob / sum(prob)
-  sample(cand, 1L, prob = prob)
+  prob <- prob / sum(prob)                              # normalize
+  sample(cand, 1L, prob = prob)                         # sample a next token
 }
 
 ## part 8 9 from yiheng
