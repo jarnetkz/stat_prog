@@ -1,29 +1,33 @@
 setwd("/Users/jarnetkz/postgraduate/statistical_prog/stat_prog")
 v_ip <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
-          fileEncoding="UTF-8")
+          fileEncoding="UTF-8") ## Loads file
 # v_ip <-a
 # v_ip<- scan("shakespeare_mini.txt",what="character",skip=4,nlines=196043-83,
           # fileEncoding="UTF-8")
 
-# Get the index that has "[" , "]"
+## Get the index that has "[" , "]"
 idx_opnb = grep("[", v_ip, fixed=TRUE) 
 idx_clsb = grep("]", v_ip, fixed=TRUE) 
 
-to_remove <- logical(length(v_ip))
-# Prepare the index we want to remove
+to_remove <- logical(length(v_ip)) ## Creates a logic vector of length of v_ip
+
+## Prepare the index we want to remove
 for (i in seq_along(idx_opnb)) {
-  start <- idx_opnb[i]
-  end <- idx_clsb[idx_clsb > start & idx_clsb <= start + 100]
+  start <- idx_opnb[i] ## Start at [ bracket
+  end <- idx_clsb[idx_clsb > start & idx_clsb <= start + 100] ## Search within 100 of this for a ] bracket
   
-  if (length(end) > 0) {
+  ## Choose first instance of ] bracket after [ bracket
+  if (length(end) > 0) { 
     end <- end[1]
   } else {
     end <- start
   }
   
+  ## Change our logic vector to show TRUE for all values between our start and stop variables
   to_remove[start:end] <- TRUE
 }
 
+## Removes all words from v_ip that are in the brackets
 clean_data <- v_ip[!to_remove]
 upper_data <- toupper(clean_data)
 
@@ -34,33 +38,34 @@ filtered_expt_AI = clean_data[(clean_data != toupper(clean_data)) |
 # remove character - _ out of filtered_expt_AI
 filtered_vec = gsub("[_-]", "", filtered_expt_AI)
 
+## Function to split punctuation from words
 split_punct <- function(filtered_vec, spcl_char) {
-  spcl_pattern = paste0("[", paste(spcl_char, collapse=""), "]")
-  i_spcl_char <- grep(spcl_pattern, filtered_vec)
-  new_vec <- rep("",length(filtered_vec) + length(i_spcl_char)) # create character empty string
-  i_new_char <- i_spcl_char + seq_along(i_spcl_char) # compute new location after splitting
+  spcl_pattern = paste0("[", paste(spcl_char, collapse=""), "]") ## Concatenate a string of punctuation togethe with no space
+  i_spcl_char <- grep(spcl_pattern, filtered_vec) 
+  new_vec <- rep("",length(filtered_vec) + length(i_spcl_char)) ## Create character empty string
+  i_new_char <- i_spcl_char + seq_along(i_spcl_char) ## Compute new location after splitting
   new_vec[i_new_char] <- substr(filtered_vec[i_spcl_char], nchar(filtered_vec[i_spcl_char]), nchar(filtered_vec[i_spcl_char]))
   new_vec[-i_new_char] <- gsub(spcl_pattern, "", filtered_vec)
   return(new_vec)
 }
+
+## Choose our punctuation
 spcl_char_vec <- c(",", ".", ";", "!", ":", "?")
 v_output <- split_punct(filtered_vec, spcl_char_vec)
+
+## Final cleaned vector for further work
 v_lower <- tolower(v_output)
 
-
-## Part 5, 6, 7
-
-## 5
-b_all <- unique(v_lower)
-idx   <- match(v_lower, b_all)
-freq  <- tabulate(idx, nbins = length(b_all))
-ord   <- order(-freq, seq_along(freq))           
+b_all <- unique(v_lower) ## Vector of all unique tokens in v_lower
+idx   <- match(v_lower, b_all) ## Indices of each token
+freq  <- tabulate(idx, nbins = length(b_all)) ## Frequency count of all tokens in our vector
+ord   <- order(-freq, seq_along(freq)) ## Sort by popularity      
 k     <- 1000L
-b     <- b_all[ ord[ seq_len(min(k, length(ord))) ] ]
+b     <- b_all[ ord[ seq_len(min(k, length(ord))) ] ] ## Select first 1000 words from our ordered unique words
 
  
 .PUNCT <- c(",", ".", ";", "!", ":", "?")
-b <- unique(c(b, .PUNCT))
+b <- unique(c(b, .PUNCT)) ## Adds punctuation to our word tokens
 
 ## 6: tokens & context matrix
 M1 <- match(v_lower, b)                        
