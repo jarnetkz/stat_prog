@@ -11,7 +11,7 @@
 ## passed key and assigning probabilities. After obtaining all candidate words, it chooses one
 ## of the options randomly. If no candidate word is found, then it returns a random one 
 ## from the original text, based on overall frequencies. Finally, this process is repeated using 
-## the generate sentence function until a full stop is reached, unless the first sentece
+## the generate sentence function until a full stop is reached, unless the first sentence
 ## is under 6 words.
 
 setwd("/Users/jarnetkz/postgraduate/statistical_prog/stat_prog")
@@ -102,17 +102,22 @@ M <- matrix(NA_integer_, nrow = nr, ncol = mlag + 1L)
 for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 
 # next.word:
-# Given a rolling context 'key' (last few tokens of the current sentence),
-# return ONE next-token id by interpolating across exact-match n-gram orders
-# from L = Lmax down to 1 (fixed weights w). If no match is found at any
-# order, fall back to a 0-gram (unigram) draw from M1 frequencies.
+# Given a current history of tokens, 'key', this function searches for matching
+# sequences within our sliding vector window M1  (tokens vector).
+# It progressively backs off and matches for smaller versions of the key, from 
+# maximum length of the key down to the smallest possible, and weights the next 
+# word options according to w. 
+# If no match is found, we choose a random word from the initial text instead.
+# The final candidate pool is normalised into probabilities and one token is 
+# sampled.
 
 # Parameters:
 #  key       integer token ids, the current word/sentence that we want to add to 
-#  M         integer matrix, context/next-token table as above, (n-mlag) x (mlag+1) (last col = next token)
+#  M         integer matrix, context/next-token table as above, (n-mlag) x (mlag+1) 
+#            (last col = next token)
 #  M1        integer(), full-text tokens (integers) over same vocab
 #  w         numeric(), mixture weights 
-#             of context columns (mlag). Defaults to equal weights.
+#            of context columns (mlag). Defaults to equal weights.
 
 # Sampling distribution:
 # For orders L = Lmax..1, collect next tokens whose last L context matches key.
@@ -173,7 +178,6 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
 # if none is provided), generate a sentence by repeatedly sampling the next
 # word from the back-off n-gram model.
 # The process stops at the first period '.' encountered.
-
 
 # Design rationale:
 # To avoid extremely short sentences (e.g. “Romeo dead.”), we add a very
@@ -273,3 +277,7 @@ set.seed(3)
 cat("auto seed:",
     generate_sentence(b, M, M1, seed_word = NULL, min_len = 6L), "\n")
 
+# Member Contributions
+# Janet       Commenting and Part 4
+# Abbi        Commenting, overview, parts 5, 6 and first draft of 7
+# Yiheng      Commenting, part 8, 9, fixing part 7 and debugging
