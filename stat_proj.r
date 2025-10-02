@@ -101,10 +101,15 @@ M <- matrix(NA_integer_, nrow = nr, ncol = mlag + 1L)
 ## Generate our sliding window vector
 for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 
+# next.word:
 
-## 7: next.word
-# key: integer token ids; M: (n-mlag) x (mlag+1) (last col = next token)
-# M1: full-text tokens (integers) over same vocab; w: mixture weights
+# Parameters:
+#   key       integer token ids, the current word/sentence that we want to add to 
+#   M         integer matrix, context/next-token table as above, (n-mlag) x (mlag+1) (last col = next token)
+#   M1        integer(), full-text tokens (integers) over same vocab
+#   w         numeric(), mixture weights 
+#             of context columns (mlag). Defaults to equal weights.
+
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
   mlag <- ncol(M) - 1L
   key  <- as.integer(key) # ensure integers
