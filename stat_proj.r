@@ -102,14 +102,23 @@ M <- matrix(NA_integer_, nrow = nr, ncol = mlag + 1L)
 for (j in 0:mlag) M[, j + 1L] <- M1[(1L + j):(nr + j)]
 
 # next.word:
+# Given a rolling context 'key' (last few tokens of the current sentence),
+# return ONE next-token id by interpolating across exact-match n-gram orders
+# from L = Lmax down to 1 (fixed weights w). If no match is found at any
+# order, fall back to a 0-gram (unigram) draw from M1 frequencies.
 
 # Parameters:
-#   key       integer token ids, the current word/sentence that we want to add to 
-#   M         integer matrix, context/next-token table as above, (n-mlag) x (mlag+1) (last col = next token)
-#   M1        integer(), full-text tokens (integers) over same vocab
-#   w         numeric(), mixture weights 
+#  key       integer token ids, the current word/sentence that we want to add to 
+#  M         integer matrix, context/next-token table as above, (n-mlag) x (mlag+1) (last col = next token)
+#  M1        integer(), full-text tokens (integers) over same vocab
+#  w         numeric(), mixture weights 
 #             of context columns (mlag). Defaults to equal weights.
 
+# Sampling distribution:
+# For orders L = Lmax..1, collect next tokens whose last L context matches key.
+# Let p_L be the empirical distribution (relative freq) over those tokens.
+# Sample from the fixed-weight mixture p(y|key) ∝ Σ_L w[L] * p_L(y|key);
+# if no matches at any order, fall back to a unigram draw from M1.
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
   mlag <- ncol(M) - 1L
   key  <- as.integer(key) # ensure integers
@@ -135,8 +144,11 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
       uL <- M[hit, mlag + 1L]                           # corresponding next tokens
       uL <- uL[!is.na(uL)]
       if (length(uL)) {
+# Add all occurrences to the candidate multiset; each occurrence gets
+# the same share within order L, so token-level probability at this
+# order is proportional to its count in uL.
         cand <- c(cand, uL)
-        prob <- c(prob, rep(w[L] / length(uL), length(uL))) # equal share within order
+        prob <- c(prob, rep(w[L] / length(uL), length(uL))) 
       }
     }
   }
@@ -148,6 +160,7 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
     tab <- tabulate(pool, nbins = max(M1, na.rm = TRUE))
     return(sample.int(length(tab), 1L, prob = tab))
   }
+
 
   prob <- prob / sum(prob)                              # normalize
   sample(cand, 1L, prob = prob)                         # sample a next token
