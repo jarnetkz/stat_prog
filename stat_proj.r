@@ -22,9 +22,16 @@ v_ip <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
 idx_opnb = grep("[", v_ip, fixed=TRUE) 
 idx_clsb = grep("]", v_ip, fixed=TRUE) 
 
-to_remove <- logical(length(v_ip)) ## Creates a logic vector of length of v_ip
+v_lgcl_rmv <- logical(length(v_ip)) ## Creates a logic vector of length of v_ip (By default is FALSE)
 
 ## Prepare the index we want to remove
+## Note: 
+## If there are unmatched instance of [ bracket as shown in a sample, 
+## the logical vector v_lgcl_rmv if index 107,109 are still F (FALSE)
+## e.g, Words        [.....] [....]    [    [     [......] 
+## v_lgcl_rmv
+##      Index        2     4 6    106  107  109   110   115
+##      Value        TTTTTTT TTTTTT    F    F     TTTTTTTT
 for (i in seq_along(idx_opnb)) {
   start <- idx_opnb[i] ## Start at [ bracket
   end <- idx_clsb[idx_clsb > start & idx_clsb <= start + 100] ## Search within 100 of this for a ] bracket
@@ -37,28 +44,30 @@ for (i in seq_along(idx_opnb)) {
   }
   
   ## Change our logic vector to show TRUE for all values between our start and stop variables
-  to_remove[start:end] <- TRUE
+  v_lgcl_rmv[start:end] <- TRUE
 }
 
 ## Removes all words from v_ip that are in the brackets
-clean_data <- v_ip[!to_remove]
+clean_data <- v_ip[!v_lgcl_rmv]
 upper_data <- toupper(clean_data)
 
-# filter out UPPERCASE words (except I , A)
+## filter out UPPERCASE words (except I , A)
 filtered_expt_AI = clean_data[(clean_data != toupper(clean_data)) | 
                              (("I" == upper_data) | ("A" == upper_data))]
 
-# remove character - _ out of filtered_expt_AI
+## remove character - _ out of filtered_expt_AI
 filtered_vec = gsub("[_-]", "", filtered_expt_AI)
 
 ## Function to split punctuation from words
 split_punct <- function(filtered_vec, spcl_char) {
-  spcl_pattern = paste0("[", paste(spcl_char, collapse=""), "]") ## Concatenate a string of punctuation togethe with no space
-  i_spcl_char <- grep(spcl_pattern, filtered_vec) 
+  spcl_pattern = paste0("[", paste(spcl_char, collapse=""), "]") ## Concatenate a string of punctuation together with no space
+  i_spcl_char <- grep(spcl_pattern, filtered_vec) ## Get index that found special character
   new_vec <- rep("",length(filtered_vec) + length(i_spcl_char)) ## Create character empty string
   i_new_char <- i_spcl_char + seq_along(i_spcl_char) ## Compute new location after splitting
-  new_vec[i_new_char] <- substr(filtered_vec[i_spcl_char], nchar(filtered_vec[i_spcl_char]), nchar(filtered_vec[i_spcl_char]))
-  new_vec[-i_new_char] <- gsub(spcl_pattern, "", filtered_vec)
+  new_vec[i_new_char] <- substr(filtered_vec[i_spcl_char], 
+                                nchar(filtered_vec[i_spcl_char]), 
+                                nchar(filtered_vec[i_spcl_char])) ## Sub-string special char at the end of the word and add to the new location
+  new_vec[-i_new_char] <- gsub(spcl_pattern, "", filtered_vec) ## Remove special character from the words and insert them to the different location
   return(new_vec)
 }
 
