@@ -213,10 +213,23 @@ generate_sentence <- function(b, M, M1,
   s <- sub("^([a-z])", "\\U\\1", s, perl = TRUE) # Capitalise the first character for readability.
   s
 }
+## over
 
-
-
-# Example:
+## Test code examples
+# Example 1: single seed
 set.seed(1)
 sentence <- generate_sentence(b, M, M1, seed_word = "romeo", min_len = 6L)
 cat(sentence, "\n")
+
+# Example 2: multiple seeds
+set.seed(2)
+for (sd in c("romeo", "king", "love")) {
+  cat(sprintf("seed='%s': %s\n", sd,
+      generate_sentence(b, M, M1, seed_word = sd, min_len = 6L)))
+}
+
+# Example 3: automatic seed (seed_word = NULL)
+set.seed(3)
+cat("auto seed:",
+    generate_sentence(b, M, M1, seed_word = NULL, min_len = 6L), "\n")
+
