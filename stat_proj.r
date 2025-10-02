@@ -126,52 +126,97 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1L)) {
   sample(cand, 1L, prob = prob)                         # sample a next token
 }
 
-## part 8 9 from yiheng
-.PUNCT <- c(",", ".", ";", "!", ":", "?")
+# generate_sentence:
+# Generate a readable sentence from a tokenised Shakespeare corpus using a
+# simple back-off n-gram sampler.
+# Starting from a given seed word (or a high-frequency non-punctuation token
+# if none is provided), generate a sentence by repeatedly sampling the next
+# word from the back-off n-gram model.
+# The process stops at the first period '.' encountered.
+
+
+# Design rationale:
+# To avoid extremely short sentences (e.g. “Romeo dead.”), we add a very
+# simple safeguard: a minimum length (min_len). Before this threshold,
+# if '.' is sampled we re-sample a few times (max 4). This still respects
+# the rule “stop at a full stop,” but reduces premature termination.
+
+# Parameters:
+#   b         character(), vocabulary (length |b|).
+#   M         integer matrix, context/next-token table as above.
+#   M1        integer(), full token stream over b.
+#   w         numeric(), mixture weights for back-off; same length as number
+#             of context columns (mlag). Defaults to equal weights.
+#   seed_word character(1) or NULL; if provided and valid it is used as seed.
+#   min_len   integer(1) >= 1; before this length, '.' is re-sampled (up to 4 tries).
 
 generate_sentence <- function(b, M, M1,
-                              w = rev(seq_len(ncol(M) - 1L))^2,  
+                              w = rep(1, ncol(M)-1L),
                               seed_word = NULL,
-                              max_len = 60L,
-                              min_len = 8L,
-                              tries_if_punct = 6L) {
-
+                              min_len = 6L) {
+  .PUNCT <- c(",", ".", ";", "!", ":", "?")
+  
+# Choose a non-punctuation seed.
+# We frequency-weight by counts in M1 (full corpus) to avoid extremely rare
+# seeds that often lead to sparse contexts and poor continuations.
   pick_seed <- function() {
     pool <- M1[!is.na(M1)]
     pool <- pool[!(b[pool] %in% .PUNCT)]
-    if (!length(pool)) return(NA_integer_)
-    tab <- tabulate(pool, nbins = length(b))
+    tab  <- tabulate(pool, nbins = length(b))
+    # sample.int(k, 1, prob = p) draws an id in 1..k with probability p.
     sample.int(length(b), 1L, prob = tab)
   }
-  seed <- if (is.null(seed_word)) {
-    pick_seed()
-  } else {
+  
+# Resolve the seed:
+# if a seed_word is provided and found in b (and not punctuation), use it;
+# otherwise, fall back to a frequency-weighted seed from M1.
+  seed <- if (is.null(seed_word)) pick_seed() else {
     id <- match(tolower(seed_word), b)
     if (is.na(id) || b[id] %in% .PUNCT) pick_seed() else id
   }
-
+  
   out <- seed; key <- seed
-  for (i in seq_len(max_len)) {
-    nx <- NA_integer_
-    for (t in seq_len(tries_if_punct)) {
-      nx <- next.word(key, M, M1, w)
+  
+  repeat {
+    nx <- next.word(key, M, M1, w)
+    if (is.na(nx)) break # defensive exit
+    
+# Minimum-length safeguard:
+# If the sentence is still shorter than min_len and we happen to sample '.',
+# try re-sampling up to 4 times to avoid stopping too early.
+# This keeps the "stop at '.'" rule intact while preventing trivial outputs.
+    if (length(out) < min_len && b[nx] == ".") {
+      tries <- 0L
+      repeat {
+        nx <- next.word(key, M, M1, w)
+        if (is.na(nx) || b[nx] != "." || tries >= 4L) break
+        tries <- tries + 1L
+      }
       if (is.na(nx)) break
-      if (length(out) < min_len && b[nx] == ".") next
-      break
     }
-    if (is.na(nx)) break
+    
+# Append chosen token to the output.
     out <- c(out, nx)
     if (b[nx] == ".") break
+    
+# Update the rolling context:
+# Append the new token and trim to the last mlag tokens so that the
+# context shape matches the training layout of M.
     key <- c(key, nx)
+    mlag <- ncol(M) - 1L
+    if (length(key) > mlag) key <- tail(key, mlag)
+    if (length(out) > 2000L) break # pathological runs guard 
   }
-
+  
   s <- paste(b[out], collapse = " ")
-  s <- gsub(" +([,.;!:?])", "\\1", s) 
-  sub(" +$", "", s)
+  s <- gsub(" +([,.;!:?])", "\\1", s)
+  s <- sub("^([a-z])", "\\U\\1", s, perl = TRUE) # Capitalise the first character for readability.
+  s
 }
-##over
-## test code
-set.seed(42)
-cat("Sample A:", generate_sentence(b, M, M1, w), "\n")
-cat("Sample B (seed='romeo'):", generate_sentence(b, M, M1, w, seed_word="romeo"), "\n")
-cat("Sample C (seed='king') :", generate_sentence(b, M, M1, w, seed_word="king"), "\n")
+
+
+
+# Example:
+set.seed(1)
+sentence <- generate_sentence(b, M, M1, seed_word = "romeo", min_len = 6L)
+cat(sentence, "\n")
