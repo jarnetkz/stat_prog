@@ -1,9 +1,22 @@
+## This code generates a small language model by taking Shakespeare's works and 
+## cleaning them. It then tokenises them, builds a simple 4-gram model (though 
+## it could be updated to work for any n-gram relatively easily) and then generates 
+## a new sentence in the style of Shakespeare, from a seed word, or random word if no
+## seed word is given. 
+
+## We begin the code by cleaning the data, removing stage directions, uppercase names,
+## some punctuation. We then tokenise everything and generate a sliding window vector 
+## based off the top 1000 most popular words. The next.word function predicts the 
+## most likely following word by collecting candidate words based off sections of the 
+## passed key and assigning probabilities. After obtaining all candidate words, it chooses one
+## of the options randomly. If no candidate word is found, then it returns a random one 
+## from the original text, based on overall frequencies. Finally, this process is repeated using 
+## the generate sentence function until a full stop is reached, unless the first sentece
+## is under 6 words.
+
 setwd("/Users/jarnetkz/postgraduate/statistical_prog/stat_prog")
 v_ip <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8") ## Loads file
-# v_ip <-a
-# v_ip<- scan("shakespeare_mini.txt",what="character",skip=4,nlines=196043-83,
-          # fileEncoding="UTF-8")
 
 ## Get the index that has "[" , "]"
 idx_opnb = grep("[", v_ip, fixed=TRUE) 
